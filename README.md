@@ -25,15 +25,17 @@ Make sure you have the following software installed on your machine:
    git clone https://github.com/puthusseri/requestcatcher.git
    cd requestcatcher
    ```
-2. Install the dependencies
-```pip install -r requirements.txt
-```
+2. Install the dependencies: 
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ## Usage
 
 1. Run the Flask application:
-```python app.py
-```
+    ```bash
+    python app.py
+    ```
 
 2. The application will be accessible at http://localhost:5000
 3. Open the application in your web browser.
