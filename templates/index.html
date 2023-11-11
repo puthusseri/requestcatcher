@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tyson</title>
+  
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/default.min.css') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.5.1.slim.min.js') }}" > </script>
+    <script src="{{ url_for('static', filename='js/popper.min.js') }}" > </script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}" > </script>
+    <script src="{{ url_for('static', filename='js/socket.io.js') }}" > </script>
+    <script src="{{ url_for('static', filename='js/highlight.min.js') }}" > </script>
+
+    <style>
+      .list-group-item.selected {
+        background-color: #007bff;
+        color: #fff;
+      }
+      .col-md-4 {
+        max-height: 100vh;
+        overflow-y: auto;
+      }
+      .col-md-8 {
+        max-height: 100vh;
+        overflow-y: auto;
+      }
+      button.remove-button {
+        margin-left: 10px;
+        cursor: pointer;
+        float: right;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <div class="row">
+        <!-- First Column: List of Requests -->
+        <div class="col-md-4">
+          <h3>Requests</h3>
+          <ul id="requestList" class="list-group"></ul>
+        </div>
+
+        <!-- Second Column: Details of Selected Request -->
+        <div class="col-md-8">
+          <h3>Request Details</h3>
+          <div id="selectedRequest" class="card">
+            <div class="card-body">
+              <pre id="selectedRequestDetails" class="json"></pre>
+            </div>
+          </div>
+          <div class="mt-4">
+            <h5>Data Field</h5>
+            <pre id="dataBox" class="json"></pre>
+          </div>
+          <div class="mt-4">
+            <h5>Meta Info</h5>
+            <pre id="metaInfo" class="json"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+   
+    <script>
+      const socket = io.connect(
+        `${window.location.protocol}//${window.location.host}`
+      );
+
+      // Initialize syntax highlighting
+      hljs.highlightAll();
+
+      // Create a single remove button
+      const removeButton = document.createElement("button");
+      removeButton.textContent = "X";
+      removeButton.className = "remove-button btn btn-danger btn-sm";
+      removeButton.style.marginLeft = "10px";
+      removeButton.style.cursor = "pointer";
+
+      // Get the requestList element
+      const requestList = document.getElementById("requestList");
+
+      socket.on("incoming_request", function (data) {
+        const listItem = document.createElement("li");
+        listItem.className = "list-group-item unselected";
+        listItem.textContent = `${data.method} /${data.path}`;
+
+        // Store the complete details of the request in a data attribute
+        listItem.setAttribute("data-request-details", JSON.stringify(data));
+
+        // Add a click event listener to show details when clicked
+        listItem.addEventListener("click", function () {
+          const selectedRequestDetails = document.getElementById(
+            "selectedRequestDetails"
+          );
+          const dataBox = document.getElementById("dataBox");
+          const ipAddressBox = document.getElementById("ipAddressBox");
+          const receivedTimeBox = document.getElementById("receivedTimeBox");
+
+          let meta_info = JSON.stringify(data.meta_info, null, 2);
+          metaInfo.textContent = meta_info;
+          hljs.highlightElement(metaInfo);
+          delete data.meta_info;
+
+          const formattedJSON = JSON.stringify(data, null, 2);
+          const unescapedJSON = formattedJSON
+            .replace(/\\n/g, "\n")
+            .replace(/\\"/g, '"');
+
+          selectedRequestDetails.textContent = formattedJSON;
+          hljs.highlightElement(selectedRequestDetails);
+
+          let dataJson = JSON.stringify(data.data, null, 2);
+          dataJson = JSON.parse(dataJson);
+          const unescapedData = dataJson
+            .replace(/\\n/g, "\n")
+            .replace(/\\"/g, '"');
+          dataBox.textContent = unescapedData;
+          hljs.highlightElement(dataBox);
+
+          listItem.appendChild(removeButton);
+          const listItems = document.getElementsByClassName("list-group-item");
+          for (const item of listItems) {
+            item.classList.remove("selected");
+          }
+
+          // Add the "selected" class to the clicked item
+          listItem.classList.add("selected");
+          listItem.classList.remove("unselected");
+        });
+
+        // Add the "unselected" class to all items initially
+        const listItems = document.getElementsByClassName("list-group-item");
+        for (const item of listItems) {
+          item.classList.add("unselected");
+        }
+
+        // Prepend the new list item to the list
+        requestList.insertBefore(listItem, requestList.firstChild);
+      });
+
+      // Add a click event listener to the remove button
+      removeButton.addEventListener("click", function (event) {
+        // Prevent the click event from propagating to the list item
+        event.stopPropagation();
+        // Remove the associated list item from the UI
+        const selectedListItem = document.querySelector(
+          ".list-group-item.selected"
+        );
+        if (selectedListItem) {
+          requestList.removeChild(selectedListItem);
+        }
+      });
+    </script>
+  </body>
+</html>
